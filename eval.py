@@ -10,6 +10,8 @@ from model import AttnDecoderRNN, EncoderRNN
 _ROOT_DIR = os.path.dirname(__file__)
 _ENCODER_MODEL_PATH = os.path.join(_ROOT_DIR, "models/encoder.pth")
 _DECODER_MODEL_PATH = os.path.join(_ROOT_DIR, "models/decoder.pth")
+_EVAL_RESULT_PATH = os.path.join(_ROOT_DIR, "results/pred.txt")
+_EVAL_LABEL_PATH = os.path.join(_ROOT_DIR, "results/label.pth")
 
 def evaluate(device, input_lang, output_lang, encoder, decoder, sentence, max_length=MAX_LENGTH):
     with torch.no_grad():
@@ -51,11 +53,25 @@ def evaluateRandomly(device, input_lang, output_lang, pairs, encoder, decoder, n
         pair = random.choice(pairs)
         print('>', pair[0])
         print('=', pair[1])
+        append_new_line(_EVAL_LABEL_PATH, pair[1])
         output_words, attentions = evaluate(device, input_lang, output_lang, encoder, decoder, pair[0])
         output_sentence = ' '.join(output_words)
         print('<', output_sentence)
+        append_new_line(_EVAL_RESULT_PATH, output_sentence)
         print('')
 
+def append_new_line(file_name, text_to_append):
+    """Append given text as a new line at the end of file"""
+    # Open the file in append & read mode ('a+')
+    with open(file_name, "a+") as file_object:
+        # Move read cursor to the start of file.
+        file_object.seek(0)
+        # If file is not empty then append '\n'
+        data = file_object.read(100)
+        if len(data) > 0:
+            file_object.write("\n")
+        # Append text at the end of file
+        file_object.write(text_to_append)
 
 if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
