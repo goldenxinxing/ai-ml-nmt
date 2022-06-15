@@ -115,9 +115,9 @@ if __name__ == "__main__":
 
     input_lang, output_lang, pairs = prepareData('eng', 'fra', False)
     hidden_size = 256
-    encoder1 = EncoderRNN(input_lang.n_words, hidden_size).to(device)
-    attn_decoder1 = AttnDecoderRNN(hidden_size, output_lang.n_words, dropout_p=0.1).to(device)
+    encoder1 = EncoderRNN(input_lang.n_words, hidden_size, device).to(device)
+    attn_decoder1 = AttnDecoderRNN(hidden_size, output_lang.n_words, device, dropout_p=0.1).to(device)
 
-    trainIters(input_lang, output_lang, pairs, device, encoder1, attn_decoder1, 75000, print_every=1000)
+    trainIters(input_lang, output_lang, pairs, device, encoder1, attn_decoder1, 190000, print_every=1000)
 
     evaluateRandomly(device, input_lang, output_lang, pairs, encoder1, attn_decoder1)
