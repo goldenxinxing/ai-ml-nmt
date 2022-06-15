@@ -5,13 +5,14 @@ from config import EOS_token, SOS_token
 from dataset import prepareData
 from helper import MAX_LENGTH, tensorFromSentence
 from model import AttnDecoderRNN, EncoderRNN
+from nltk.translate.bleu_score import corpus_bleu, sentence_bleu, SmoothingFunction
 
 
 _ROOT_DIR = os.path.dirname(__file__)
 _ENCODER_MODEL_PATH = os.path.join(_ROOT_DIR, "models/encoder.pth")
 _DECODER_MODEL_PATH = os.path.join(_ROOT_DIR, "models/decoder.pth")
 _EVAL_RESULT_PATH = os.path.join(_ROOT_DIR, "results/pred.txt")
-_EVAL_LABEL_PATH = os.path.join(_ROOT_DIR, "results/label.pth")
+_EVAL_LABEL_PATH = os.path.join(_ROOT_DIR, "results/label.txt")
 
 def evaluate(device, input_lang, output_lang, encoder, decoder, sentence, max_length=MAX_LENGTH):
     with torch.no_grad():
@@ -47,6 +48,13 @@ def evaluate(device, input_lang, output_lang, encoder, decoder, sentence, max_le
             decoder_input = topi.squeeze().detach()
 
         return decoded_words, decoder_attentions[:di + 1]
+
+def get_bleu(references, hypotheses):
+    # compute BLEU
+    bleu_score = corpus_bleu([[ref[1:-1]] for ref in references],
+                             [hyp[1:-1] for hyp in hypotheses])
+
+    return bleu_score
 
 def evaluateRandomly(device, input_lang, output_lang, pairs, encoder, decoder, n=10):
     for i in range(n):
