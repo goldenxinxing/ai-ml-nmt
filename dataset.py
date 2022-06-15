@@ -19,6 +19,7 @@ class Lang:
         self.word2count = {}
         self.index2word = {0: "SOS", 1: "EOS"}
         self.n_words = 2  # Count SOS and EOS
+        self.data = []
 
     def addSentence(self, sentence):
         for word in sentence.split(' '):
@@ -26,6 +27,7 @@ class Lang:
 
     def addWord(self, word):
         if word not in self.word2index:
+            self.data.append(word)
             self.word2index[word] = self.n_words
             self.word2count[word] = 1
             self.index2word[self.n_words] = word

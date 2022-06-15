@@ -1,11 +1,14 @@
 import os
 import random
+from tkinter import scrolledtext
 import torch
 from config import EOS_token, SOS_token
 from dataset import prepareData
 from helper import MAX_LENGTH, tensorFromSentence
 from model import AttnDecoderRNN, EncoderRNN
-from nltk.translate.bleu_score import corpus_bleu, sentence_bleu, SmoothingFunction
+from nltk.metrics import *
+from nltk.translate import *
+from nltk.translate.bleu_score import SmoothingFunction
 
 
 _ROOT_DIR = os.path.dirname(__file__)
@@ -40,7 +43,7 @@ def evaluate(device, input_lang, output_lang, encoder, decoder, sentence, max_le
             decoder_attentions[di] = decoder_attention.data
             topv, topi = decoder_output.data.topk(1)
             if topi.item() == EOS_token:
-                decoded_words.append('<EOS>')
+                #decoded_words.append('<EOS>')
                 break
             else:
                 decoded_words.append(output_lang.index2word[topi.item()])
@@ -51,22 +54,61 @@ def evaluate(device, input_lang, output_lang, encoder, decoder, sentence, max_le
 
 def get_bleu(references, hypotheses):
     # compute BLEU
-    bleu_score = corpus_bleu([[ref[1:-1]] for ref in references],
-                             [hyp[1:-1] for hyp in hypotheses])
+    bleu_score = bleu([[ref[1:-1]] for ref in references],
+                      [hyp[1:-1] for hyp in hypotheses])
 
     return bleu_score
 
+
 def evaluateRandomly(device, input_lang, output_lang, pairs, encoder, decoder, n=10):
+    #input_sent = []
+    #output_sent = []
+    #pred_sent = []
     for i in range(n):
+        output_sent = []
+        pred_sent = []
         pair = random.choice(pairs)
         print('>', pair[0])
         print('=', pair[1])
+        output_sent.append(pair[1])
+
         append_new_line(_EVAL_LABEL_PATH, pair[1])
+
         output_words, attentions = evaluate(device, input_lang, output_lang, encoder, decoder, pair[0])
         output_sentence = ' '.join(output_words)
         print('<', output_sentence)
+
+        pred_sent.append(output_sentence)
         append_new_line(_EVAL_RESULT_PATH, output_sentence)
+
+        # valid_metric = bleu(pair[1].split(), output_sentence.split())
+        print('score', bleu([pair[1].split()], output_sentence.split(), smoothing_function=SmoothingFunction().method2))
+        # print('accuracy', accuracy(pair[1].split(), output_sentence.split()))
         print('')
+    # bleu scroe
+    # data = zip(input_sent, output_sent)
+
+    # valid_metric = get_bleu([tgt for src, tgt in data], pred_sent)
+    # print('score', valid_metric)
+    
+    #print('score-my0', bleu("i am gxx".split(), "i am gxx".split(), smoothing_function=SmoothingFunction().method0))
+    print('score-my1', bleu(["i am gxx o o".split()], "i am gxx o o".split(), smoothing_function=SmoothingFunction().method1))
+    print('score-my2', bleu(["i am gxx o o".split()], "i am gxx o o".split(), smoothing_function=SmoothingFunction().method2))
+    print('score-my3', bleu(["i am gxx o o".split()], "i am gxx o o".split(), smoothing_function=SmoothingFunction().method3))
+    print('score-my4', bleu(["i am gxx o o".split()], "i am gxx o o".split(), smoothing_function=SmoothingFunction().method4))
+
+    
+    #print('score-my0', bleu("i am gxx ii asdf fdf fd df f".split(), "i am y gxx ii asdf y u fdf fd df f u".split(), smoothing_function=SmoothingFunction().method0))
+    print('score-my1', bleu(["i am gxx ii asdf fdf fd df f".split()], "i am gxx ii asdf fdf fd df f".split(), smoothing_function=SmoothingFunction().method1))
+    print('score-my2', bleu(["i am gxx ii asdf fdf fd df f".split()], "i am gxx ii asdf fdf fd df f".split(), smoothing_function=SmoothingFunction().method2))
+    print('score-my3', bleu(["i am gxx ii asdf fdf fd df f".split()], "i am gxx ii asdf fdf fd df f".split(), smoothing_function=SmoothingFunction().method3))
+    print('score-my4', bleu(["i am gxx ii asdf fdf fd df f".split()], "i am gxx ii asdf fdf fd df f".split(), smoothing_function=SmoothingFunction().method4))
+    
+    print('score-my1', bleu(["je te donnerai ce livre".split()], "je te donne ce livre".split(), smoothing_function=SmoothingFunction().method1))
+    print('score-my2', bleu(["je te donnerai ce livre".split()], "je te donne ce livre".split(), smoothing_function=SmoothingFunction().method2))
+    print('score-my3', bleu(["je te donnerai ce livre".split()], "je te donne ce livre".split(), smoothing_function=SmoothingFunction().method3))
+    print('score-my4', bleu(["je te donnerai ce livre".split()], "je te donne ce livre".split(), smoothing_function=SmoothingFunction().method4))
+
 
 def append_new_line(file_name, text_to_append):
     """Append given text as a new line at the end of file"""
@@ -86,15 +128,15 @@ if __name__ == "__main__":
 
     input_lang, output_lang, pairs = prepareData('eng', 'fra', False)
     hidden_size = 256
-    encoder1 = EncoderRNN(input_lang.n_words, hidden_size).to(device)
+    encoder1 = EncoderRNN(input_lang.n_words, hidden_size, device).to(device)
 
-    net1 = torch.load(_ENCODER_MODEL_PATH)
+    net1 = torch.load(_ENCODER_MODEL_PATH, device)
     encoder1.load_state_dict(net1)
 
 
-    attn_decoder1 = AttnDecoderRNN(hidden_size, output_lang.n_words, dropout_p=0.1).to(device)
+    attn_decoder1 = AttnDecoderRNN(hidden_size, output_lang.n_words, device, dropout_p=0.1).to(device)
 
-    net2 = torch.load(_DECODER_MODEL_PATH)
+    net2 = torch.load(_DECODER_MODEL_PATH, device)
     attn_decoder1.load_state_dict(net2)
 
     evaluateRandomly(device, input_lang, output_lang, pairs, encoder1, attn_decoder1)
