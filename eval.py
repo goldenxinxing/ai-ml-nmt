@@ -1,6 +1,5 @@
 import os
 import random
-from tkinter import scrolledtext
 import torch
 from config import EOS_token, SOS_token
 from dataset import prepareData
