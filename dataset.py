@@ -13,6 +13,7 @@ from helper import MAX_LENGTH, filterComment, normalizeString
 
 
 def prepareData(path):
+    print('preapring data...')
     # Read the file and split into lines
     lines = open(path, encoding='utf-8').\
         read().strip().split('\n')
