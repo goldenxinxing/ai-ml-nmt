@@ -5,6 +5,7 @@ from config import EOS_token, SOS_token
 from dataset import prepareData
 from helper import MAX_LENGTH, tensorFromSentence
 from model import AttnDecoderRNN, EncoderRNN
+from vocab import Vocab, Lang
 from nltk.metrics import *
 from nltk.translate import *
 from nltk.translate.bleu_score import SmoothingFunction
@@ -59,7 +60,7 @@ def get_bleu(references, hypotheses):
     return bleu_score
 
 
-def evaluateRandomly(device, input_lang, output_lang, pairs, encoder, decoder, n=10):
+def evaluateRandomly(device, input_lang, output_lang, pairs, encoder, decoder, n=16):
     #input_sent = []
     #output_sent = []
     #pred_sent = []
@@ -81,7 +82,7 @@ def evaluateRandomly(device, input_lang, output_lang, pairs, encoder, decoder, n
         append_new_line(_EVAL_RESULT_PATH, output_sentence)
 
         # valid_metric = bleu(pair[1].split(), output_sentence.split())
-        print('score', bleu([pair[1].split()], output_sentence.split(), smoothing_function=SmoothingFunction().method2))
+        print('score', bleu([pair[1].split()], output_sentence.split()))
         # print('accuracy', accuracy(pair[1].split(), output_sentence.split()))
         print('')
     # bleu scroe
@@ -89,15 +90,23 @@ def evaluateRandomly(device, input_lang, output_lang, pairs, encoder, decoder, n
 
     # valid_metric = get_bleu([tgt for src, tgt in data], pred_sent)
     # print('score', valid_metric)
-    
-    #print('score-my0', bleu("i am gxx".split(), "i am gxx".split(), smoothing_function=SmoothingFunction().method0))
+
+    #reference = [['the', 'quick', 'brown', 'fox', 'jumped', 'over', 'the', 'lazy', 'dog']]
+    reference = [['ils', 'parlent', 'rarement', 'francais', 'si', 'tant', 'est', 'qu', 'ils', 'le', 'fassent','.']]
+    #candidate = ['the', 'quick', 'brown', 'fox', 'jumped', 'over', 'the', 'lazy', 'dog']
+    candidate = ['ils', 'se', 'rarement', 'jamais', 'francais', '.']
+    score = bleu(reference, candidate)
+    print('standard', score)
+
+
+    print('score-my0', bleu("i am gxx", "i am gxx"))
     print('score-my1', bleu(["i am gxx o o".split()], "i am gxx o o".split(), smoothing_function=SmoothingFunction().method1))
     print('score-my2', bleu(["i am gxx o o".split()], "i am gxx o o".split(), smoothing_function=SmoothingFunction().method2))
     print('score-my3', bleu(["i am gxx o o".split()], "i am gxx o o".split(), smoothing_function=SmoothingFunction().method3))
     print('score-my4', bleu(["i am gxx o o".split()], "i am gxx o o".split(), smoothing_function=SmoothingFunction().method4))
 
     
-    #print('score-my0', bleu("i am gxx ii asdf fdf fd df f".split(), "i am y gxx ii asdf y u fdf fd df f u".split(), smoothing_function=SmoothingFunction().method0))
+    print('score-my0', bleu("i am gxx ii asdf fdf fd df f", "i am y gxx ii asdf y u fdf fd df f u"))
     print('score-my1', bleu(["i am gxx ii asdf fdf fd df f".split()], "i am gxx ii asdf fdf fd df f".split(), smoothing_function=SmoothingFunction().method1))
     print('score-my2', bleu(["i am gxx ii asdf fdf fd df f".split()], "i am gxx ii asdf fdf fd df f".split(), smoothing_function=SmoothingFunction().method2))
     print('score-my3', bleu(["i am gxx ii asdf fdf fd df f".split()], "i am gxx ii asdf fdf fd df f".split(), smoothing_function=SmoothingFunction().method3))
@@ -125,17 +134,21 @@ def append_new_line(file_name, text_to_append):
 if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    input_lang, output_lang, pairs = prepareData('eng', 'fra', False)
+    vocab = torch.load('data/vocab_eng-fra.bin')
+
+    pairs = prepareData('data/test_eng-fra.txt')
+
+
     hidden_size = 256
-    encoder1 = EncoderRNN(input_lang.n_words, hidden_size, device).to(device)
+    encoder1 = EncoderRNN(vocab.input_lang.n_words, hidden_size, device).to(device)
 
     net1 = torch.load(_ENCODER_MODEL_PATH, device)
     encoder1.load_state_dict(net1)
 
 
-    attn_decoder1 = AttnDecoderRNN(hidden_size, output_lang.n_words, device, dropout_p=0.1).to(device)
+    attn_decoder1 = AttnDecoderRNN(hidden_size, vocab.output_lang.n_words, device, dropout_p=0.1).to(device)
 
     net2 = torch.load(_DECODER_MODEL_PATH, device)
     attn_decoder1.load_state_dict(net2)
 
-    evaluateRandomly(device, input_lang, output_lang, pairs, encoder1, attn_decoder1)
+    evaluateRandomly(device, vocab.input_lang, vocab.output_lang, pairs, encoder1, attn_decoder1)

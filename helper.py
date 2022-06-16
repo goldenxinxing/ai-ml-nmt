@@ -1,7 +1,9 @@
 import time
 import math
+import unicodedata
 import matplotlib.pyplot as plt
 import torch
+import re
 
 from config import MAX_LENGTH, EOS_token
 plt.switch_backend('agg')
@@ -60,10 +62,22 @@ def tensorsFromPair(input_lang, output_lang, pair, device):
     return (input_tensor, target_tensor)
 
 
-def showPlot(points):
-    plt.figure()
-    fig, ax = plt.subplots()
-    # this locator puts ticks at regular intervals
-    loc = ticker.MultipleLocator(base=0.2)
-    ax.yaxis.set_major_locator(loc)
-    plt.plot(points)
+# Turn a Unicode string to plain ASCII, thanks to
+# https://stackoverflow.com/a/518232/2809427
+def unicodeToAscii(s):
+    return ''.join(
+        c for c in unicodedata.normalize('NFD', s)
+        if unicodedata.category(c) != 'Mn'
+    )
+
+# Lowercase, trim, and remove non-letter characters
+
+
+def normalizeString(s):
+    s = unicodeToAscii(s.lower().strip())
+    s = re.sub(r"([.!?])", r" \1", s)
+    s = re.sub(r"[^a-zA-Z.!?]+", r" ", s)
+    return s
+
+def filterComment(s):
+    return s.startswith("CC-BY")

@@ -10,7 +10,7 @@ from dataset import prepareData
 from eval import evaluateRandomly
 from helper import tensorsFromPair, timeSince
 from model import AttnDecoderRNN, EncoderRNN
-
+from vocab import Vocab, Lang
 
 teacher_forcing_ratio = 0.5
 
@@ -113,11 +113,15 @@ def trainIters(input_lang, output_lang, pairs, device, encoder, decoder, n_iters
 if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    input_lang, output_lang, pairs = prepareData('eng', 'fra', False)
+    vocab = torch.load('data/vocab_eng-fra.bin')
+
+    pairs = prepareData('data/train_eng-fra.txt')
+
     hidden_size = 256
-    encoder1 = EncoderRNN(input_lang.n_words, hidden_size, device).to(device)
-    attn_decoder1 = AttnDecoderRNN(hidden_size, output_lang.n_words, device, dropout_p=0.1).to(device)
 
-    trainIters(input_lang, output_lang, pairs, device, encoder1, attn_decoder1, 190000, print_every=1000)
+    encoder = EncoderRNN(vocab.input_lang.n_words, hidden_size, device).to(device)
+    attn_decoder = AttnDecoderRNN(hidden_size, vocab.output_lang.n_words, device, dropout_p=0.1).to(device)
 
-    evaluateRandomly(device, input_lang, output_lang, pairs, encoder1, attn_decoder1)
+    trainIters(vocab.input_lang, vocab.output_lang, pairs, device, encoder, attn_decoder, 190000, print_every=1000)
+
+    evaluateRandomly(device, vocab.input_lang, vocab.output_lang, pairs, encoder, attn_decoder)
